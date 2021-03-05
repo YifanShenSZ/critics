@@ -22,7 +22,8 @@ argparse::ArgumentParser parse_args(const size_t & argc, const char ** & argv) {
     parser.add_argument("-g","--guess",      1, false, "initial guess geometry file");
 
     // optional arguments
-    parser.add_argument("-o","--output", 1, true, "output file, default = job.xyz");
+    parser.add_argument("-c","--fixed_coords", '+', true, "fix these internal coordinates during searching");
+    parser.add_argument("-o","--output",         1, true, "output file, default = job.xyz");
 
     parser.parse_args(argc, argv);
     return parser;
@@ -49,10 +50,24 @@ int main(size_t argc, const char ** argv) {
     std::vector<std::string> adiabatz_inputs = args.retrieve<std::vector<std::string>>("adiabatz");
     adiabatz::initialize_adiabatz(adiabatz_inputs);
 
+    if (target_state >= adiabatz::NStates) {
+        std::cerr << "Error: There are only " << adiabatz::NStates << " electronic states, "
+                  << "so the target state should not exceed that\n";
+        throw std::invalid_argument("Bad target state");
+    }
+
     std::string guess = args.retrieve<std::string>("guess");
     CL::chem::xyz<double> init_geom(guess, true);
     std::vector<double> init_coords = init_geom.coords();
     at::Tensor init_r = at::from_blob(init_coords.data(), init_coords.size(), at::TensorOptions().dtype(torch::kFloat64));
+    at::Tensor init_q = (*intcoordset)(init_r);
+
+    std::vector<size_t> fixed_coords;
+    if (args.gotArgument("fixed_coords")) {
+        fixed_coords = args.retrieve<std::vector<size_t>>("fixed_coords");
+        for (size_t & fixed_coord : fixed_coords) fixed_coord -= 1;
+    }
+    fixed_intcoord = std::make_shared<Fixed_intcoord>(fixed_coords, init_q);
 
     at::Tensor final_r;
     if (job == "min") final_r = search_minimum(init_r);

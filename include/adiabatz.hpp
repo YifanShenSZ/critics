@@ -5,6 +5,8 @@
 
 namespace adiabatz {
 
+extern size_t NStates;
+
 void initialize_adiabatz(const std::vector<std::string> & args);
 
 at::Tensor compute_energy(const at::Tensor & r);

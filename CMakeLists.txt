@@ -25,6 +25,8 @@ if(NOT tchem_FOUND)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${tchem_CXX_FLAGS}")
 endif()
 
+include_directories(include)
+
 add_executable(critics.exe
     source/int2cart.cpp
     source/global.cpp

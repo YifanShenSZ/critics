@@ -2,12 +2,19 @@
 
 #include <Hd/kernel.hpp>
 
-namespace adiabatz {
+namespace {
 
 std::shared_ptr<Hd::kernel> Hdkernel;
 
+}
+
+namespace adiabatz {
+
+size_t NStates;
+
 void initialize_adiabatz(const std::vector<std::string> & args) {
     Hdkernel = std::make_shared<Hd::kernel>(args);
+    NStates = Hdkernel->NStates();
 }
 
 at::Tensor compute_energy(const at::Tensor & r) {
