@@ -50,6 +50,8 @@ const std::shared_ptr<tchem::IC::IntCoordSet> & _intcoordset) {
     int32_t cartdim = r.size(0),
             intdim = intcoordset_->size();
     int32_t fake_intdim = cartdim > intdim ? cartdim : intdim;
-    Foptim::trust_region(cart2int_residue, cart2int_Jacobian, r_ptr, fake_intdim, cartdim);
+    Foptim::trust_region(cart2int_residue, cart2int_Jacobian, r_ptr,
+                         fake_intdim, cartdim,
+                         100, 100, 1e-12, 1e-15);
     return r;
 }

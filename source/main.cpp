@@ -8,6 +8,8 @@
 
 at::Tensor search_minimum(const at::Tensor & init_guess);
 
+at::Tensor search_saddle(const at::Tensor & init_guess);
+
 argparse::ArgumentParser parse_args(const size_t & argc, const char ** & argv) {
     CL::utility::echo_command(argc, argv, std::cout);
     std::cout << '\n';
@@ -70,7 +72,8 @@ int main(size_t argc, const char ** argv) {
     fixed_intcoord = std::make_shared<Fixed_intcoord>(fixed_coords, init_q);
 
     at::Tensor final_r;
-    if (job == "min") final_r = search_minimum(init_r);
+    if      (job == "min") final_r = search_minimum(init_r);
+    else if (job == "sad") final_r = search_saddle (init_r);
 
     size_t cartdim = init_coords.size();
     std::vector<double> final_coords(cartdim);

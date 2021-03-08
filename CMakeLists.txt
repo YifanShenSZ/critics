@@ -31,6 +31,7 @@ add_executable(critics.exe
     source/int2cart.cpp
     source/global.cpp
     source/minimum.cpp
+    source/saddle.cpp
     source/main.cpp
 )
 
