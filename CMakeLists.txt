@@ -32,6 +32,7 @@ add_executable(critics.exe
     source/global.cpp
     source/minimum.cpp
     source/saddle.cpp
+    source/mex.cpp
     source/main.cpp
 )
 

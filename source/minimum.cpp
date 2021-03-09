@@ -23,7 +23,7 @@ void energy_grad(double & energy, double * grad, const double * free_intgeom, co
     at::Tensor r = int2cart(q, init_guess_, intcoordset);
     at::Tensor e, dHa;
     std::tie(e, dHa) = adiabatz::compute_energy_dHa(r);
-    at::Tensor intgrad =  intcoordset->gradient_cart2int(r, dHa[target_state][target_state]);
+    at::Tensor intgrad = intcoordset->gradient_cart2int(r, dHa[target_state][target_state]);
     at::Tensor free_intgrad = fixed_intcoord->vector_total2free(intgrad);
     energy = e[target_state].item<double>();
     std::memcpy(grad, free_intgrad.data_ptr<double>(), free_intdim * sizeof(double));

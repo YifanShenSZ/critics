@@ -10,6 +10,8 @@ at::Tensor search_minimum(const at::Tensor & init_guess);
 
 at::Tensor search_saddle(const at::Tensor & init_guess);
 
+at::Tensor search_mex(const at::Tensor & _init_guess);
+
 argparse::ArgumentParser parse_args(const size_t & argc, const char ** & argv) {
     CL::utility::echo_command(argc, argv, std::cout);
     std::cout << '\n';
@@ -74,6 +76,8 @@ int main(size_t argc, const char ** argv) {
     at::Tensor final_r;
     if      (job == "min") final_r = search_minimum(init_r);
     else if (job == "sad") final_r = search_saddle (init_r);
+    else if (job == "mex") final_r = search_mex    (init_r);
+    else throw std::invalid_argument("Unsupported job type");
 
     size_t cartdim = init_coords.size();
     std::vector<double> final_coords(cartdim);
