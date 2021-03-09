@@ -9,13 +9,6 @@ at::Tensor init_guess_;
 
 double lambda, miu;
 
-double gap(const at::Tensor & q_free) {
-    at::Tensor q = fixed_intcoord->vector_free2total(q_free);
-    at::Tensor r = int2cart(q, init_guess_, intcoordset);
-    at::Tensor e = adiabatz::compute_energy(r);
-    return (e[target_state + 1] - e[target_state]).item<double>();
-}
-
 void L(double & L, const double * free_intgeom, const int32_t & free_intdim) {
     // adiabatz
     at::Tensor q_free = at::from_blob(const_cast<double *>(free_intgeom), free_intdim,
@@ -94,26 +87,54 @@ at::Tensor search_mex(const at::Tensor & _init_guess) {
     init_guess_ = _init_guess;
     at::Tensor q = (*intcoordset)(_init_guess);
     at::Tensor q_free = fixed_intcoord->vector_total2free(q);
+    // Compute energy gap
+    at::Tensor r = int2cart(q, init_guess_, intcoordset);
+    at::Tensor energy = adiabatz::compute_energy(r);
+    double avg = (energy[target_state + 1] + energy[target_state]).item<double>(),
+           gap = (energy[target_state + 1] - energy[target_state]).item<double>();
     // Augmented Lagrangian
-    lambda = 0.0;
-    miu    = 1.0 / pow(std::max(gap(q_free), 1e-4), 3.0);
+    double init_gap = std::max(gap, 1e-4);
+    double init_C   = 0.5 * init_gap * init_gap;
+    double init_miu = avg / pow(init_gap, 4.0);
+    lambda = -init_miu * init_C;
+    miu    =  init_miu;
+    double switcher = sqrt(avg / miu);
     size_t iIteration = 0;
     while (true) {
+        // Minimize current augmented Lagrangian
         Foptim::BFGS(L, L_Ld, Ldd,
                      q_free.data_ptr<double>(), q_free.size(0),
                      20, 100, 1e-6, 1e-15);
-        double energy_gap = gap(q_free);
-        if (energy_gap < 1e-5) break;
+        // Compute energy gap
+        at::Tensor q = fixed_intcoord->vector_free2total(q_free);
+        at::Tensor r = int2cart(q, init_guess_, intcoordset);
+        at::Tensor energy = adiabatz::compute_energy(r);
+        double gap = (energy[target_state + 1] - energy[target_state]).item<double>();
+        // Check convergence
+        if (gap < 1e-6) break;
         iIteration++;
         if (iIteration > 100) {
             std::cerr << "Max iteration exceeds\n";
             break;
         }
-        std::cerr << "Iteration " << iIteration << ": gap = " << energy_gap << '\n';
-        lambda -= miu * (0.5 * energy_gap * energy_gap);
-        miu *= 1.05;
+        std::cerr << "\nIteration " << iIteration << ":\n"
+                  << "lower state energy = " << energy[target_state].item<double>() << '\n'
+                  << "gap = " << gap << '\n'
+                  << "lamda = " << lambda << '\n'
+                  << "miu = " << miu << '\n';
+        // Get ready for next iteration
+        double C = 0.5 * gap * gap;
+        if (C < switcher) {
+            std::cerr << "Update lambda\n";
+            lambda -= miu * C;
+            switcher = switcher / pow(miu / init_miu, 0.9);
+        }
+        else {
+            std::cerr << "Update miu\n";
+            miu *= 100.0;
+            switcher /= 10.0;
+        }
     }
     q = fixed_intcoord->vector_free2total(q_free);
-    at::Tensor r = int2cart(q, _init_guess, intcoordset);
-    return r;
+    return int2cart(q, _init_guess, intcoordset);
 }
